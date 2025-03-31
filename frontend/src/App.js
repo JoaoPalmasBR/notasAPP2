@@ -13,7 +13,18 @@ function App() {
   const [usuarioLogado, setUsuarioLogado] = useState(null);
 
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const [tema, setTema] = useState(localStorage.getItem('tema') || 'light');
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', tema);
+  }, [tema]);
+  
+  const toggleTema = () => {
+    const novo = tema === 'light' ? 'dark' : 'light';
+    setTema(novo);
+    localStorage.setItem('tema', novo);
+  };
+  
   const carregarPosts = async () => {
     try {
       const res = await axios.get('/api/posts', { headers });
@@ -124,9 +135,19 @@ function App() {
 
   return (
     <div className="container-fluid mt-4 fade-in">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h4 className="m-0">Bem-vindo, <strong>{usuarioLogado?.username}</strong></h4>
-        <button className="btn btn-outline-danger" onClick={logout}>Sair</button>
+      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-2">
+        <h4 className="m-0">
+          <i className="bi bi-person-circle me-2"></i>
+          Bem-vindo, <strong>{usuarioLogado?.username}</strong>
+        </h4>
+        <div className="d-flex gap-2">
+          <button className="btn btn-outline-secondary" onClick={toggleTema}>
+            <i className={`bi ${tema === 'dark' ? 'bi-sun' : 'bi-moon'}`}></i>
+          </button>
+          <button className="btn btn-outline-danger" onClick={logout}>
+            <i className="bi bi-box-arrow-right"></i> Sair
+          </button>
+        </div>
       </div>
 
       <div className="row mb-4">
