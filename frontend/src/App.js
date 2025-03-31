@@ -6,12 +6,12 @@ function App() {
   const [posts, setPosts] = useState([]);
 
   const carregarPosts = async () => {
-    const res = await axios.get("http://localhost:8000/posts");
+    const res = await axios.get("/api/posts");
     setPosts(res.data);
   };
 
   const enviarPost = async () => {
-    await axios.post("http://localhost:8000/posts", { conteudo });
+    await axios.post("/api/posts", { conteudo });
     setConteudo("");
     carregarPosts();
   };
