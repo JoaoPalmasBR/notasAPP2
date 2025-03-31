@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './App.css'; // CSS extra para animações
 
 function App() {
   const [conteudo, setConteudo] = useState('');
@@ -9,6 +10,7 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [view, setView] = useState('login');
   const [mensagem, setMensagem] = useState('');
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
 
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -16,8 +18,17 @@ function App() {
     try {
       const res = await axios.get('/api/posts', { headers });
       setPosts(res.data);
-    } catch (err) {
+    } catch {
       setMensagem('Erro ao carregar posts');
+    }
+  };
+
+  const buscarUsuario = async () => {
+    try {
+      const res = await axios.get('/api/me', { headers });
+      setUsuarioLogado(res.data);
+    } catch {
+      setMensagem('Erro ao buscar usuário');
     }
   };
 
@@ -26,23 +37,21 @@ function App() {
       await axios.post('/api/posts', { conteudo }, { headers });
       setConteudo('');
       carregarPosts();
-    } catch (err) {
+    } catch {
       setMensagem('Erro ao enviar post');
     }
   };
 
   const login = async () => {
     try {
-      const res = await axios.post('/api/login', new URLSearchParams({
-        username,
-        password,
-      }));
+      const res = await axios.post('/api/login', new URLSearchParams({ username, password }));
       const newToken = res.data.access_token;
       setToken(newToken);
       localStorage.setItem('token', newToken);
       setMensagem('');
+      await buscarUsuario();
       carregarPosts();
-    } catch (err) {
+    } catch {
       setMensagem('Usuário ou senha inválidos');
     }
   };
@@ -60,6 +69,7 @@ function App() {
   const logout = () => {
     setToken('');
     localStorage.removeItem('token');
+    setUsuarioLogado(null);
     setPosts([]);
     setUsername('');
     setPassword('');
@@ -68,71 +78,41 @@ function App() {
 
   useEffect(() => {
     if (token) {
+      buscarUsuario();
       carregarPosts();
     }
   }, [token]);
 
   if (!token) {
     return (
-      <div className="container mt-5">
-        <h2 className="mb-3 text-center">
-          {view === 'login' ? 'Login' : 'Cadastro'}
-        </h2>
+      <div className="container mt-5 fade-in">
+        <h2 className="mb-3 text-center">{view === 'login' ? 'Login' : 'Cadastro'}</h2>
 
         {mensagem && <div className="alert alert-info">{mensagem}</div>}
 
         <div className="mb-3">
-          <input
-            className="form-control"
-            type="text"
-            placeholder="Usuário"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
+          <input className="form-control" type="text" placeholder="Usuário" value={username} onChange={(e) => setUsername(e.target.value)} />
         </div>
         <div className="mb-3">
-          <input
-            className="form-control"
-            type="password"
-            placeholder="Senha"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <input className="form-control" type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
+
         {view === 'login' ? (
           <>
-            <button className="btn btn-primary w-100" onClick={login}>
-              Entrar
-            </button>
+            <button className="btn btn-primary w-100" onClick={login}>Entrar</button>
             <p className="mt-3 text-center">
               Ainda não tem conta?{' '}
-              <span
-                className="text-primary"
-                style={{ cursor: 'pointer' }}
-                onClick={() => {
-                  setView('register');
-                  setMensagem('');
-                }}
-              >
+              <span className="text-primary" style={{ cursor: 'pointer' }} onClick={() => { setView('register'); setMensagem(''); }}>
                 Cadastre-se
               </span>
             </p>
           </>
         ) : (
           <>
-            <button className="btn btn-success w-100" onClick={register}>
-              Cadastrar
-            </button>
+            <button className="btn btn-success w-100" onClick={register}>Cadastrar</button>
             <p className="mt-3 text-center">
               Já tem conta?{' '}
-              <span
-                className="text-primary"
-                style={{ cursor: 'pointer' }}
-                onClick={() => {
-                  setView('login');
-                  setMensagem('');
-                }}
-              >
+              <span className="text-primary" style={{ cursor: 'pointer' }} onClick={() => { setView('login'); setMensagem(''); }}>
                 Fazer login
               </span>
             </p>
@@ -143,31 +123,31 @@ function App() {
   }
 
   return (
-    <div className="container mt-5">
-      <h2 className="mb-4">Bem-vindo!</h2>
-      <button className="btn btn-outline-danger mb-4" onClick={logout}>
-        Sair
-      </button>
-
-      <div className="input-group mb-3">
-        <input
-          className="form-control"
-          type="text"
-          placeholder="Digite seu post"
-          value={conteudo}
-          onChange={(e) => setConteudo(e.target.value)}
-        />
-        <button className="btn btn-primary" onClick={enviarPost}>
-          Enviar
-        </button>
+    <div className="container-fluid mt-4 fade-in">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h4 className="m-0">Bem-vindo, <strong>{usuarioLogado?.username}</strong></h4>
+        <button className="btn btn-outline-danger" onClick={logout}>Sair</button>
       </div>
 
-      <h4 className="mb-3">Posts</h4>
-      {posts.map((post, idx) => (
-        <div key={idx} className="card mb-2">
-          <div className="card-body">{post.conteudo}</div>
+      <div className="row mb-4">
+        <div className="col-md-10 col-sm-9">
+          <input className="form-control" type="text" placeholder="Digite seu post" value={conteudo} onChange={(e) => setConteudo(e.target.value)} />
         </div>
-      ))}
+        <div className="col-md-2 col-sm-3">
+          <button className="btn btn-primary w-100" onClick={enviarPost}>Enviar</button>
+        </div>
+      </div>
+
+      <h5>Posts recentes</h5>
+      <div className="row">
+        {posts.map((post, idx) => (
+          <div key={idx} className="col-md-4 mb-3 fade-in">
+            <div className="card h-100 shadow-sm">
+              <div className="card-body">{post.conteudo}</div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
