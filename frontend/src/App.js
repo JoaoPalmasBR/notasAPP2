@@ -6,14 +6,22 @@ function App() {
   const [posts, setPosts] = useState([]);
 
   const carregarPosts = async () => {
-    const res = await axios.get("/api/posts");
-    setPosts(res.data);
+    try {
+      const res = await axios.get("/api/posts");
+      setPosts(res.data);
+    } catch (err) {
+      console.error("Erro ao carregar posts:", err);
+    }
   };
 
   const enviarPost = async () => {
-    await axios.post("/api/posts", { conteudo });
-    setConteudo("");
-    carregarPosts();
+    try {
+      await axios.post("/api/posts", { conteudo });
+      setConteudo("");
+      carregarPosts();
+    } catch (err) {
+      console.error("Erro ao enviar post:", err);
+    }
   };
 
   useEffect(() => {
