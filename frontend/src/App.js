@@ -7,6 +7,8 @@ function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [view, setView] = useState('login');
+  const [mensagem, setMensagem] = useState('');
 
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -15,7 +17,7 @@ function App() {
       const res = await axios.get('/api/posts', { headers });
       setPosts(res.data);
     } catch (err) {
-      console.error('Erro ao carregar posts:', err);
+      setMensagem('Erro ao carregar posts');
     }
   };
 
@@ -25,7 +27,7 @@ function App() {
       setConteudo('');
       carregarPosts();
     } catch (err) {
-      console.error('Erro ao enviar post:', err);
+      setMensagem('Erro ao enviar post');
     }
   };
 
@@ -38,10 +40,20 @@ function App() {
       const newToken = res.data.access_token;
       setToken(newToken);
       localStorage.setItem('token', newToken);
+      setMensagem('');
       carregarPosts();
     } catch (err) {
-      console.error('Erro no login:', err);
-      alert('Usuário ou senha inválidos');
+      setMensagem('Usuário ou senha inválidos');
+    }
+  };
+
+  const register = async () => {
+    try {
+      await axios.post('/api/register', { username, password });
+      setMensagem('Cadastro realizado com sucesso! Faça login.');
+      setView('login');
+    } catch (err) {
+      setMensagem(err.response?.data?.detail || 'Erro ao registrar');
     }
   };
 
@@ -51,6 +63,7 @@ function App() {
     setPosts([]);
     setUsername('');
     setPassword('');
+    setMensagem('');
   };
 
   useEffect(() => {
@@ -61,48 +74,100 @@ function App() {
 
   if (!token) {
     return (
-      <div style={{ padding: 20 }}>
-        <h2>Login</h2>
-        <input
-          type="text"
-          placeholder="Usuário"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        /><br />
-        <input
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        /><br />
-        <button onClick={login}>Entrar</button>
+      <div className="container mt-5">
+        <h2 className="mb-3 text-center">
+          {view === 'login' ? 'Login' : 'Cadastro'}
+        </h2>
+
+        {mensagem && <div className="alert alert-info">{mensagem}</div>}
+
+        <div className="mb-3">
+          <input
+            className="form-control"
+            type="text"
+            placeholder="Usuário"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+        </div>
+        <div className="mb-3">
+          <input
+            className="form-control"
+            type="password"
+            placeholder="Senha"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        {view === 'login' ? (
+          <>
+            <button className="btn btn-primary w-100" onClick={login}>
+              Entrar
+            </button>
+            <p className="mt-3 text-center">
+              Ainda não tem conta?{' '}
+              <span
+                className="text-primary"
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  setView('register');
+                  setMensagem('');
+                }}
+              >
+                Cadastre-se
+              </span>
+            </p>
+          </>
+        ) : (
+          <>
+            <button className="btn btn-success w-100" onClick={register}>
+              Cadastrar
+            </button>
+            <p className="mt-3 text-center">
+              Já tem conta?{' '}
+              <span
+                className="text-primary"
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  setView('login');
+                  setMensagem('');
+                }}
+              >
+                Fazer login
+              </span>
+            </p>
+          </>
+        )}
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Bem-vindo!</h2>
-      <button onClick={logout}>Sair</button>
+    <div className="container mt-5">
+      <h2 className="mb-4">Bem-vindo!</h2>
+      <button className="btn btn-outline-danger mb-4" onClick={logout}>
+        Sair
+      </button>
 
-      <div style={{ marginTop: 20 }}>
+      <div className="input-group mb-3">
         <input
+          className="form-control"
           type="text"
           placeholder="Digite seu post"
           value={conteudo}
           onChange={(e) => setConteudo(e.target.value)}
         />
-        <button onClick={enviarPost}>Enviar</button>
+        <button className="btn btn-primary" onClick={enviarPost}>
+          Enviar
+        </button>
       </div>
 
-      <div style={{ marginTop: 20 }}>
-        <h3>Posts</h3>
-        {posts.map((post, idx) => (
-          <div key={idx} style={{ border: '1px solid #ccc', marginBottom: 10, padding: 10 }}>
-            {post.conteudo}
-          </div>
-        ))}
-      </div>
+      <h4 className="mb-3">Posts</h4>
+      {posts.map((post, idx) => (
+        <div key={idx} className="card mb-2">
+          <div className="card-body">{post.conteudo}</div>
+        </div>
+      ))}
     </div>
   );
 }
