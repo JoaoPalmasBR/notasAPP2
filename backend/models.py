@@ -6,3 +6,9 @@ class Post(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     conteudo = Column(String, nullable=False)
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, nullable=False)
+    senha = Column(String, nullable=False)
