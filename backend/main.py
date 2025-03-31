@@ -1,12 +1,19 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import logging
 import traceback
 import redis
 import json
+from sqlalchemy.orm import Session
+from database import SessionLocal, engine
+from models import Post as PostModel
+import models
 
-app = FastAPI(root_path="/api")  # Com root_path correto
+app = FastAPI(root_path="/api")
+
+# Criar tabelas no banco
+models.Base.metadata.create_all(bind=engine)
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -30,37 +37,49 @@ except redis.RedisError as e:
     logger.error(traceback.format_exc())
     r = None
 
-# Dados em memória
-posts = []
-
 # Modelo de entrada
 class Post(BaseModel):
     conteudo: str
 
+# Dependência de sessão com o banco
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 @app.get("/posts")
-def listar_posts():
-    logger.info("Listando posts.")
-    if r:
-        try:
+def listar_posts(db: Session = Depends(get_db)):
+    logger.info("Listando posts do banco de dados.")
+    try:
+        if r:
             cached = r.get("posts")
             if cached:
-                logger.info("Posts encontrados no cache.")
+                logger.info("Posts carregados do cache.")
                 return json.loads(cached)
-            r.set("posts", json.dumps(posts))
-            logger.info("Posts armazenados no cache.")
-        except Exception:
-            logger.error("Erro ao acessar o cache Redis:")
-            logger.error(traceback.format_exc())
-    return posts
+        posts = db.query(PostModel).all()
+        result = [{"id": p.id, "conteudo": p.conteudo} for p in posts]
+        if r:
+            r.set("posts", json.dumps(result))
+        return result
+    except Exception:
+        logger.error("Erro ao listar posts")
+        logger.error(traceback.format_exc())
+        return []
 
 @app.post("/posts")
-async def criar_post(post: Post, request: Request):
+async def criar_post(post: Post, request: Request, db: Session = Depends(get_db)):
     try:
         logger.info(f"Recebido post: {post}")
-        posts.append(post)
+        novo_post = PostModel(conteudo=post.conteudo)
+        db.add(novo_post)
+        db.commit()
+        db.refresh(novo_post)
         if r:
-            r.set("posts", json.dumps([p.dict() for p in posts]))
-            logger.info("Cache atualizado com novo post.")
+            posts = db.query(PostModel).all()
+            result = [{"id": p.id, "conteudo": p.conteudo} for p in posts]
+            r.set("posts", json.dumps(result))
         return {"mensagem": "Post criado com sucesso!"}
     except Exception:
         logger.error("Erro ao criar post")

@@ -23,3 +23,18 @@ services:
     ports:
       - "6379:6379"
     restart: always
+
+  db:
+    image: postgres
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: joao
+      POSTGRES_PASSWORD: joao
+      POSTGRES_DB: postagens
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
