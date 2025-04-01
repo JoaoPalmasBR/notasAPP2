@@ -54,7 +54,7 @@ Desenvolvido por João Antonio dos Santos Ilario e Fransueudes Alexandre Freitas
    ```
 3. Acesse o frontend em http://localhost e a API em http://localhost/api/
 
-#### Frontend
+### Frontend
 
 1. Navegue até o diretório frontend/
 ```js
